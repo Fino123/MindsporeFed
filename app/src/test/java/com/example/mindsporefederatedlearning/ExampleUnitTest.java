@@ -1,7 +1,6 @@
 package com.example.mindsporefederatedlearning;
 
 import static org.junit.Assert.*;
-
 import org.testng.annotations.Test;
 
 /**

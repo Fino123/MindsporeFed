@@ -1,135 +1,126 @@
 package com.example.mindsporefederatedlearning;
 
-import android.app.AlertDialog;
+import android.animation.ObjectAnimator;
+import android.annotation.SuppressLint;
+import android.app.ActionBar;
+import android.app.ActivityManager;
+import android.content.Context;
+import android.content.res.AssetFileDescriptor;
+import android.graphics.Color;
+import android.media.Image;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Debug;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewTreeObserver;
+import android.view.WindowManager;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.viewpager.widget.ViewPager;
 
+import com.alibaba.fastjson2.JSONObject;
+import com.example.mindsporefederatedlearning.common.MaxHeap;
+import com.example.mindsporefederatedlearning.common.TopKAccuracyCallback;
+import com.example.mindsporefederatedlearning.fragments.AppPredictionFLFragment;
+import com.example.mindsporefederatedlearning.fragments.UserProfileFLFragment;
+import com.example.mindsporefederatedlearning.mlp.FlJobMlp;
+import com.example.mindsporefederatedlearning.other.AppAdapter;
+import com.example.mindsporefederatedlearning.other.AppListItem;
+import com.example.mindsporefederatedlearning.other.IconDispatcher;
+import com.example.mindsporefederatedlearning.utils.JSONUtil;
+import com.example.mindsporefederatedlearning.utils.LoggerListener;
 import com.example.mindsporefederatedlearning.utils.LoggerUtil;
+import com.example.mindsporefederatedlearning.utils.NetUtil;
+import com.mindspore.Graph;
+import com.mindspore.MSTensor;
+import com.mindspore.Model;
+import com.mindspore.config.DeviceType;
+import com.mindspore.config.MSContext;
+import com.mindspore.config.TrainCfg;
 import com.mindspore.flclient.FLClientStatus;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
+import lecho.lib.hellocharts.formatter.AxisValueFormatter;
+import lecho.lib.hellocharts.formatter.SimpleAxisValueFormatter;
+import lecho.lib.hellocharts.model.Axis;
+import lecho.lib.hellocharts.model.AxisValue;
+import lecho.lib.hellocharts.model.Line;
+import lecho.lib.hellocharts.model.LineChartData;
+import lecho.lib.hellocharts.model.PointValue;
+import lecho.lib.hellocharts.model.ValueShape;
+import lecho.lib.hellocharts.view.LineChartView;
 
 
 @RequiresApi(api = Build.VERSION_CODES.P)
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    private Button show_log_info;
-    private TextView tv_log;
-    private String parentPath;
+public class MainActivity extends AppCompatActivity{
+    private ViewPager viewPager;
+    private Fragment[] fragments = new Fragment[]{new AppPredictionFLFragment(), new UserProfileFLFragment()};
+//    private String[] titles = {"APP使用预测", "用户画像预测"};
 
-    private FlJob flJob;
+    @SuppressLint("MissingInflatedId")
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        getSupportActionBar().hide();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_activity);
-        // 获取该应用程序在Android系统中的磁盘路径
-        this.parentPath = this.getExternalFilesDir(null).getAbsolutePath();
-        // copy assets目录下面的资源文件到Android系统的磁盘中
-        AssetCopyer.copyAllAssets(this.getApplicationContext(), parentPath);
-
-        // 初始化日志
-        String logFolderPath = parentPath + "/log";
-        File logFolder = new File(logFolderPath);
-        if(!logFolder.exists()){
-            logFolder.mkdir();
-        }
-        // copy assets目录下面的资源文件到Android系统的磁盘中
-        AssetCopyer.copyAllAssets(this.getApplicationContext(), parentPath);
-        LoggerUtil.setLogFilePath(parentPath + "/log/MyLogFile.log");
-
-        // 新建一个线程，启动联邦学习训练与推理任务
-        Button start = (Button) findViewById(R.id.start_federated_learning);
-        start.setOnClickListener(this);
-        show_log_info = (Button) findViewById(R.id.bt_show_log_info);
-        show_log_info.setOnClickListener(this);
-        tv_log = (TextView) findViewById(R.id.tv_debug_info);
-        tv_log.setOnClickListener(this);
+        viewPager = (ViewPager) findViewById(R.id.view_pager);
+        MyPagerAdapter adapter = new MyPagerAdapter(getSupportFragmentManager());
+        viewPager.setAdapter(adapter);
     }
 
-    public String readDataFile(String fileName) {
-        String res = "";
-        try {
-            File file = new File(fileName);
-            FileInputStream fin = new FileInputStream(file);
-            int length = fin.available();
-            byte[] buffer = new byte[length];
-            fin.read(buffer);
-            res = new String(buffer);
-            fin.close();
+    private class MyPagerAdapter extends FragmentPagerAdapter{
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.e("Exception", "readDataFile Error!" + e.getMessage());
+        public MyPagerAdapter(FragmentManager manager){
+            super(manager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT);
         }
-        return res;
-    }
 
-    @Override
-    public void onClick(View view) {
-        switch (view.getId()){
-            case R.id.start_federated_learning:
-                new Thread(() -> {
-                    flJob = new FlJob(parentPath);
-                    FLClientStatus result = flJob.syncJobTrain();
-                    flJob.syncJobPredict();
-                    flJob.finish_job();
-                    if (result==FLClientStatus.FAILED){
-                        Log.d("FLClientStatus", "FAILED");
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this)
-                                        //标题
-                                        .setTitle("提示")
-                                        //内容
-                                        .setMessage("训练失败，请再次点击按钮。")
-                                        //图标
-                                        .setIcon(R.mipmap.ic_launcher)
-                                        .setPositiveButton("确认", null)
-                                        .create();
-                                alertDialog.show();
-                            }
-                        });
-                    }else if (result==FLClientStatus.WAIT){
-                        Log.d("FLClientStatus", "WAIT");
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this)
-                                        //标题
-                                        .setTitle("提示")
-                                        //内容
-                                        .setMessage("在等待序列中，请等待一段时间后重新点击按钮。")
-                                        //图标
-                                        .setIcon(R.mipmap.ic_launcher)
-                                        .setPositiveButton("确认", null)
-                                        .create();
-                                alertDialog.show();
-                            }
-                        });
-                    }else {
-                        Log.d("FLClientStatus", "Else Status");
-                    }
-                }).start();
-                break;
-            case R.id.bt_show_log_info:
-                String log = readDataFile(parentPath + "/log/MyLogFile.log");
-                tv_log.setText(log);
-                break;
+        @Override
+        public int getCount() {
+            return fragments.length;
         }
-    }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        flJob.finish_job();
+//        @Nullable
+//        @Override
+//        public CharSequence getPageTitle(int position) {
+//            return titles[position];
+//        }
+
+        @NonNull
+        @Override
+        public Fragment getItem(int position) {
+            return fragments[position];
+        }
     }
 
 }

@@ -1,5 +1,7 @@
 package com.example.mindsporefederatedlearning.utils;
 
+import android.util.Log;
+
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.logging.FileHandler;

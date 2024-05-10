@@ -1,33 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
-
-    <ScrollView
+    <androidx.viewpager.widget.ViewPager
         android:layout_width="match_parent"
-        android:layout_height="200dp">
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:id="@+id/tv_debug_info"
-            android:text="该区域显示手机日志信息"
-            android:textSize="10dp">
-        </TextView>
-    </ScrollView>
+        android:layout_height="match_parent"
+        android:id="@+id/view_pager">
 
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="参与联邦训练"
-        android:layout_marginTop="10dp"
-        android:id="@+id/start_federated_learning"/>
-
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="显示日志信息"
-        android:layout_marginTop="10dp"
-        android:id="@+id/bt_show_log_info"/>
-
+    </androidx.viewpager.widget.ViewPager>
 </LinearLayout>

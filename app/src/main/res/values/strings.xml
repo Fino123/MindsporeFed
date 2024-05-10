@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">MindSporeFederatedLearning</string>
+    <string name="default_before_start">暂无</string>
 </resources>

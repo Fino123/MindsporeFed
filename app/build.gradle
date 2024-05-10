@@ -34,7 +34,13 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    aaptOptions{
+        noCompress "ms"
+    }
+
 }
+
 
 dependencies {
     //指定扫描libs目录下的AAR包
@@ -46,9 +52,11 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
     implementation 'com.android.support:multidex:1.0.3'
-
+    implementation 'com.github.lecho:hellocharts-library:1.5.8@aar'
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.39'
     //添加联邦学习所依赖的第三方开源软件
 //    implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.14.9'
 //    implementation group: 'com.google.flatbuffers', name: 'flatbuffers-java', version: '2.0.0'
 //    implementation(group: 'org.bouncycastle',name: 'bcprov-jdk15on', version: '1.68')
 }
+
