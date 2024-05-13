@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme">
+        <item name="android:statusBarColor">#33692b</item> <!-- 这里的 #FF0000 表示红色 -->
+    </style>
+</resources>
